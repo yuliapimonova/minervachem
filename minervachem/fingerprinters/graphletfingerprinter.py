@@ -397,13 +397,16 @@ def ComputeGraphletFingerprint(rdkit_mol, maxlen, explicit_h, elements=(), filte
     """RDKit style wrapper to generate_subgraphs but keyed by (size, bit)"""
     if isinstance(rdkit_mol, Mol):
         G = mol_to_nx(rdkit_mol, explicit_h=explicit_h)
+        el_inds = [atom.GetIdx() for atom in rdkit_mol.GetAtoms() if atom.GetSymbol() in elements] if elements else None
     elif isinstance(rdkit_mol, str):
         if 'TRIPOS' in rdkit_mol:
             G = mol2_to_nx(rdkit_mol, explicit_h=explicit_h)
+            el_inds = [n for n, d in G.nodes(data=True) if d.get('element') in elements] if elements else None
         else:
             raise ValueError('Unknown molecule type for featurizing')
     elif isinstance(rdkit_mol, nx.classes.graph.Graph):
         G = rdkit_mol
+        el_inds = [n for n, d in G.nodes(data=True) if d.get('element') in elements] if elements else None
     else:
         raise ValueError('Unknown molecule type for featurizing')
     subsets, counter = generate_subgraphs(G, maxlen)
@@ -418,7 +421,7 @@ def ComputeGraphletFingerprint(rdkit_mol, maxlen, explicit_h, elements=(), filte
     if len(elements)==0:
         return fp, bit_info
     else:
-        el_inds = [atom.GetIdx() for atom in rdkit_mol.GetAtoms() if atom.GetSymbol() in elements]
+        # el_inds = [atom.GetIdx() for atom in rdkit_mol.GetAtoms() if atom.GetSymbol() in elements]
         if len(el_inds)==0:
             if len(elements)!=0:
                 if verbose:
@@ -438,7 +441,7 @@ def ComputeGraphletFingerprint(rdkit_mol, maxlen, explicit_h, elements=(), filte
                 if remove_flag:
                     bit_info[k] = []
                     fp[k] = 0
-        if terminal_pos:
+        if terminal_pos: # Not working for network x yet
             assert filter_in, "The functionality currently works for filtering in only." # TODO make it work for filter out too
             for k, v in bit_info.items():
                 if len(v)==0 or k[0]<=2:
